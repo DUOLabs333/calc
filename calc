@@ -1,0 +1,50 @@
+#!/bin/python3
+
+from sympy import *
+from mpmath import radians, degrees
+import readline
+import ast
+import code
+from IPython.terminal.embed import InteractiveShellEmbed
+from traitlets.config.loader import Config
+
+micro=10**(-6)
+milli=10**(-3)
+centi=10**(-2)
+pico=10**(-12)
+
+def symbol(s):
+    globals()[s]=Symbol(s)
+
+def function(s):
+    globals()[s]=Function(s)
+
+ans=0
+
+def auto_symbol(info):
+    init_printing(use_unicode=True)
+    root = ast.parse(info.raw_cell)
+
+    # Uniqifies and sorts
+    names = sorted({node.id for node in ast.walk(root) if isinstance(node, ast.Name)})
+    
+    for name in names:
+        try:
+            eval(name)
+        except NameError:
+            symbol(name)
+
+def rename(result):
+    global ans
+    ans=_
+    
+cfg=Config()
+cfg.TerminalInteractiveShell.colors="NoColor"
+cfg.TerminalInteractiveShell.confirm_exit=False
+cfg.TerminalInteractiveShell.autosuggestions_provider=None
+ip=InteractiveShellEmbed(config=cfg)
+
+ip.events.register('pre_run_cell', auto_symbol)
+ip.events.register('post_run_cell', rename)
+
+ip()
