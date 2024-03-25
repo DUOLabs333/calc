@@ -7,8 +7,55 @@ import ast
 import code
 from IPython.terminal.embed import InteractiveShellEmbed
 from traitlets.config.loader import Config
+from tokenize import generate_tokens, untokenize, NAME, NUMBER, OP, STRING
+from io import StringIO
+from decimal import Decimal
 
+def is_float_literal(s):
+    """Identify floating-point literals amongst all numeric literals."""
+    if s.endswith('j'):
+        return False  # Exclude imaginary literals.
+    elif '.' in s:
+        return True  # It's got a '.' in it and it's not imaginary.
+    elif s.startswith(('0x', '0X')):
+        return False  # Must be a hexadecimal integer.
+    else:
+        return 'e' in s  # After excluding hex, 'e' must indicate an exponent.
+
+def decistmt(lines):
+    """Substitute Decimals for floats in a string of statements.
+
+    >>> from decimal import Decimal
+    >>> s = 'print +21.3e-5*-.1234/81.7'
+    >>> decistmt(s)
+    "print +Decimal ('21.3e-5')*-Decimal ('.1234')/Decimal ('81.7')"
+
+    >>> exec(s)
+    -3.21716034272e-007
+    >>> exec(decistmt(s))
+    -3.217160342717258261933904529E-7
+
+    """
+    
+    new_lines=[]
+    for s in lines:
+        result = []
+        g = generate_tokens(StringIO(s).readline)   # tokenize the string
+        for toknum, tokval, _, _, _  in g:
+            if toknum == NUMBER and is_float_literal(tokval):
+                result.extend([
+                    (NAME, 'Decimal'),
+                    (OP, '('),
+                    (STRING, repr(tokval)),
+                    (OP, ')')
+                ])
+            else:
+                result.append((toknum, tokval))
+        new_lines.append(untokenize(result))
+    return new_lines
+    
 micro=10**(-6)
+nano=10**(-9)
 milli=10**(-3)
 centi=10**(-2)
 pico=10**(-12)
@@ -34,6 +81,7 @@ def auto_symbol(info):
         except NameError:
             symbol(name)
 
+
 def rename(result):
     global ans
     ans=_
@@ -46,5 +94,6 @@ ip=InteractiveShellEmbed(config=cfg)
 
 ip.events.register('pre_run_cell', auto_symbol)
 ip.events.register('post_run_cell', rename)
+ip.input_transformers_cleanup.append(decistmt)
 
 ip()
