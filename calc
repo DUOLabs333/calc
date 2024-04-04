@@ -9,7 +9,6 @@ from IPython.terminal.embed import InteractiveShellEmbed
 from traitlets.config.loader import Config
 from tokenize import generate_tokens, untokenize, NAME, NUMBER, OP, STRING
 from io import StringIO
-from decimal import Decimal
 
 def is_float_literal(s):
     """Identify floating-point literals amongst all numeric literals."""
@@ -44,7 +43,7 @@ def decistmt(lines):
         for toknum, tokval, _, _, _  in g:
             if toknum == NUMBER and is_float_literal(tokval):
                 result.extend([
-                    (NAME, 'Decimal'),
+                    (NAME, 'Float'),
                     (OP, '('),
                     (STRING, repr(tokval)),
                     (OP, ')')
@@ -59,6 +58,14 @@ nano=10**(-9)
 milli=10**(-3)
 centi=10**(-2)
 pico=10**(-12)
+
+class IntegerWrapper(ast.NodeTransformer):
+    """Wraps all integers in a call to Integer()"""
+    def visit_Num(self, node):
+        if isinstance(node.n, int):
+            return ast.Call(func=ast.Name(id='Integer', ctx=ast.Load()),
+                            args=[node], keywords=[])
+        return node
 
 def symbol(s):
     globals()[s]=Symbol(s)
@@ -84,8 +91,10 @@ def auto_symbol(info):
 
 def rename(result):
     global ans
-    ans=_
-    
+    ans=result.result
+
+e=E
+
 cfg=Config()
 cfg.TerminalInteractiveShell.colors="NoColor"
 cfg.TerminalInteractiveShell.confirm_exit=False
@@ -95,5 +104,5 @@ ip=InteractiveShellEmbed(config=cfg)
 ip.events.register('pre_run_cell', auto_symbol)
 ip.events.register('post_run_cell', rename)
 ip.input_transformers_cleanup.append(decistmt)
-
+ip.ast_transformers.append(IntegerWrapper)
 ip()
