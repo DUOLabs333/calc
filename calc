@@ -68,11 +68,12 @@ class IntegerWrapper(ast.NodeTransformer):
                             args=[node], keywords=[])
         return node
 
+
 def symbol(s):
-    globals()[s]=Symbol(s)
+    ip.user_ns[s]=Symbol(s)
 
 def function(s):
-    globals()[s]=Function(s)
+    ip.user_ns[s]=Function(s)
 
 ans=0
 
@@ -85,19 +86,19 @@ def auto_symbol(info):
     
     for name in names:
         try:
-            eval(name)
+            eval(name,ip.user_ns)
         except NameError:
             symbol(name)
 
 
 def rename(result):
-    global ans
-    ans=result.result
+     ip.user_ns[ans]=result.result
 
 def reload_ns(result):
     ip.user_ns.update(globals())
     
 e=E
+
 
 cfg=Config()
 cfg.TerminalInteractiveShell.colors="NoColor"
