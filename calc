@@ -6,6 +6,7 @@ import readline
 import ast
 import code
 from IPython.terminal.embed import InteractiveShellEmbed
+from IPython import start_ipython
 from traitlets.config.loader import Config
 from tokenize import generate_tokens, untokenize, NAME, NUMBER, OP, STRING
 from io import StringIO
@@ -43,7 +44,7 @@ def decistmt(lines):
         for toknum, tokval, _, _, _  in g:
             if toknum == NUMBER and is_float_literal(tokval):
                 result.extend([
-                    (NAME, 'Float'),
+                    (NAME, 'Rational'),
                     (OP, '('),
                     (STRING, repr(tokval)),
                     (OP, ')')
@@ -68,10 +69,10 @@ class IntegerWrapper(ast.NodeTransformer):
         return node
 
 def symbol(s):
-    globals()[s]=Symbol(s)
+    ip.user_ns[s]=Symbol(s)
 
 def function(s):
-    globals()[s]=Function(s)
+    ip.user_ns[s]=Function(s)
 
 ans=0
 
@@ -105,4 +106,5 @@ ip.events.register('pre_run_cell', auto_symbol)
 ip.events.register('post_run_cell', rename)
 ip.input_transformers_cleanup.append(decistmt)
 ip.ast_transformers.append(IntegerWrapper())
+
 ip()
