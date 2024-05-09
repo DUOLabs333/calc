@@ -106,8 +106,9 @@ cfg.TerminalInteractiveShell.autosuggestions_provider=None
 ip=InteractiveShellEmbed(config=cfg)
 
 ip.events.register('pre_run_cell', auto_symbol)
+#ip.events.register('post_run_cell', reload_ns)
 ip.events.register('post_run_cell', rename)
-ip.events.register('post_run_cell', reload_ns)
+
 ip.input_transformers_cleanup.append(decistmt)
 ip.ast_transformers.append(IntegerWrapper())
 
