@@ -69,10 +69,10 @@ class IntegerWrapper(ast.NodeTransformer):
         return node
 
 def symbol(s):
-    ip.user_ns[s]=Symbol(s)
+    globals()[s]=Symbol(s)
 
 def function(s):
-    ip.user_ns[s]=Function(s)
+    globals()[s]=Function(s)
 
 ans=0
 
@@ -94,6 +94,9 @@ def rename(result):
     global ans
     ans=result.result
 
+def reload_ns(result):
+    ip.user_ns.update(globals())
+    
 e=E
 
 cfg=Config()
@@ -104,6 +107,7 @@ ip=InteractiveShellEmbed(config=cfg)
 
 ip.events.register('pre_run_cell', auto_symbol)
 ip.events.register('post_run_cell', rename)
+ip.events.register('post_run_cell', reload_ns)
 ip.input_transformers_cleanup.append(decistmt)
 ip.ast_transformers.append(IntegerWrapper())
 
